@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
 
 class SharedSidebar extends StatefulWidget {
@@ -63,6 +62,78 @@ class _SharedSidebarState extends State<SharedSidebar> with SingleTickerProvider
     super.dispose();
   }
 
+  void _showLogoutConfirmation() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation1, animation2) => Container(),
+      transitionBuilder: (context, animation1, animation2, child) {
+        return FadeTransition(
+          opacity: animation1,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AlertDialog(
+              backgroundColor: Colors.blue.shade900.withOpacity(0.6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                'Logout',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              content: Text(
+                'Are you sure you want to logout?',
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await AuthService().signOut();
+                    if (mounted) {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.withOpacity(0.8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Logout',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSidebarItem({
     required IconData icon,
     required String title,
@@ -118,6 +189,8 @@ class _SharedSidebarState extends State<SharedSidebar> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
@@ -143,98 +216,97 @@ class _SharedSidebarState extends State<SharedSidebar> with SingleTickerProvider
             // Sidebar
             Positioned(
               left: _sidebarAnimation.value * 250,
-              top: 0,
+              top: statusBarHeight,
               bottom: 0,
-              child: Container(
-                width: 250,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+              child: GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  if (details.primaryDelta! < 0) {
+                    widget.onToggle();
+                  }
+                },
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! < 0) {
+                    widget.onToggle();
+                  }
+                },
+                child: Container(
+                  width: 250,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        IconButton(
-                          onPressed: widget.onToggle,
-                          icon: Icon(
-                            widget.isOpen ? Icons.chevron_left : Icons.chevron_right,
-                            color: Colors.white,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          _buildSidebarItem(
+                            icon: Icons.home_outlined,
+                            title: 'Home',
+                            route: '/dashboard',
+                            isSelected: widget.currentRoute == '/dashboard',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
                           ),
-                        ).animate()
-                          .fadeIn()
-                          .scale(),
-                        const SizedBox(height: 20),
-                        _buildSidebarItem(
-                          icon: Icons.home_outlined,
-                          title: 'Home',
-                          route: '/dashboard',
-                          isSelected: widget.currentRoute == '/dashboard',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                        ),
-                        _buildSidebarItem(
-                          icon: Icons.location_on_outlined,
-                          title: 'Nearby Spaces',
-                          route: '/dashboard',
-                          isSelected: widget.currentRoute == '/dashboard',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                        ),
-                        _buildSidebarItem(
-                          icon: Icons.add_circle_outline,
-                          title: 'Add New Space',
-                          route: '/dashboard',
-                          isSelected: widget.currentRoute == '/dashboard',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                        ),
-                        _buildSidebarItem(
-                          icon: Icons.favorite_outline,
-                          title: 'Favorites',
-                          route: '/dashboard',
-                          isSelected: widget.currentRoute == '/dashboard',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                        ),
-                        _buildSidebarItem(
-                          icon: Icons.settings_outlined,
-                          title: 'Settings',
-                          route: '/settings',
-                          isSelected: widget.currentRoute == '/settings',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/settings'),
-                        ),
-                        _buildSidebarItem(
-                          icon: Icons.info_outline,
-                          title: 'About',
-                          route: '/dashboard',
-                          isSelected: widget.currentRoute == '/dashboard',
-                          onTap: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                        ),
-                        const Spacer(),
-                        _buildSidebarItem(
-                          icon: Icons.logout,
-                          title: 'Logout',
-                          route: '/login',
-                          onTap: () {
-                            AuthService().signOut();
-                            Navigator.pushReplacementNamed(context, '/login');
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+                          _buildSidebarItem(
+                            icon: Icons.location_on_outlined,
+                            title: 'Nearby Spaces',
+                            route: '/nearby',
+                            isSelected: widget.currentRoute == '/nearby',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/nearby'),
+                          ),
+                          _buildSidebarItem(
+                            icon: Icons.add_circle_outline,
+                            title: 'Add New Space',
+                            route: '/add-space',
+                            isSelected: widget.currentRoute == '/add-space',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/add-space'),
+                          ),
+                          _buildSidebarItem(
+                            icon: Icons.favorite_outline,
+                            title: 'Favorites',
+                            route: '/favorites',
+                            isSelected: widget.currentRoute == '/favorites',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/favorites'),
+                          ),
+                          _buildSidebarItem(
+                            icon: Icons.settings_outlined,
+                            title: 'Settings',
+                            route: '/settings',
+                            isSelected: widget.currentRoute == '/settings',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/settings'),
+                          ),
+                          _buildSidebarItem(
+                            icon: Icons.info_outline,
+                            title: 'About',
+                            route: '/about',
+                            isSelected: widget.currentRoute == '/about',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/about'),
+                          ),
+                          const Spacer(),
+                          _buildSidebarItem(
+                            icon: Icons.logout,
+                            title: 'Logout',
+                            route: '/login',
+                            onTap: _showLogoutConfirmation,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ),

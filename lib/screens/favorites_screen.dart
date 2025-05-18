@@ -2,38 +2,17 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../services/auth_service.dart';
 import '../widgets/shared_sidebar.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class FavoritesScreen extends StatefulWidget {
+  const FavoritesScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  final _authService = AuthService();
+class _FavoritesScreenState extends State<FavoritesScreen> {
   bool _isSidebarOpen = false;
-  String? _userName;
-  String? _userInitial;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  void _loadUserData() async {
-    final user = _authService.currentUser;
-    if (user != null) {
-      final userData = await _authService.getUserData(user.uid);
-      setState(() {
-        _userName = userData?['name'] ?? user.displayName ?? 'User';
-        _userInitial = _userName!.isNotEmpty ? _userName![0].toUpperCase() : 'U';
-      });
-    }
-  }
 
   void _toggleSidebar() {
     setState(() {
@@ -66,43 +45,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.white.withOpacity(0.2),
-                          child: Text(
-                            _userInitial ?? 'U',
-                            style: GoogleFonts.poppins(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ).animate()
-                          .fadeIn()
-                          .scale(),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              Text(
-                                _userName ?? 'User',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'Favorites',
+                          style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
+                        const Spacer(),
                         IconButton(
                           onPressed: _toggleSidebar,
                           icon: Icon(
@@ -111,7 +62,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ],
-                    ),
+                    ).animate().fadeIn().slideY(begin: -0.2),
                     const SizedBox(height: 24),
                     Card(
                       elevation: 8,
@@ -131,7 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'This is the Dashboard',
+                                  'This is the Favorites section',
                                   style: GoogleFonts.poppins(
                                     fontSize: 24,
                                     color: Colors.white,
@@ -139,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Welcome to your coding space dashboard. Here you can manage your spaces and activities.',
+                                  'Here you can find all your favorite coding spaces.',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     color: Colors.white70,
@@ -157,7 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             // Shared Sidebar
             SharedSidebar(
-              currentRoute: '/dashboard',
+              currentRoute: '/favorites',
               isOpen: _isSidebarOpen,
               onToggle: _toggleSidebar,
             ),
