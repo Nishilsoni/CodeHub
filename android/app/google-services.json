@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "411581117758",
+    "project_id": "productive-hub-c1381",
+    "storage_bucket": "productive-hub-c1381.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411581117758:android:9880f3d89d086d7e5a286f",
+        "android_client_info": {
+          "package_name": "com.nishil.productivehub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwCw0ks6qyYZvKEJvYQ5B7g6f2xzamdW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
