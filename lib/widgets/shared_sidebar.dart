@@ -161,13 +161,13 @@ class _SharedSidebarState extends State<SharedSidebar> with SingleTickerProvider
               color: Colors.white,
               size: 24,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Flexible(
               child: Text(
                 title,
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.5,
                   shadows: [

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/shared_sidebar.dart';
 
 class NearbySpacesScreen extends StatefulWidget {
@@ -12,12 +14,130 @@ class NearbySpacesScreen extends StatefulWidget {
 }
 
 class _NearbySpacesScreenState extends State<NearbySpacesScreen> {
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+  Position? _currentPosition;
+  bool _isLoading = true;
+  bool _hasLocationPermission = false;
   bool _isSidebarOpen = false;
+
+  // Sample recommended places (replace with your actual data source)
+  final List<Map<String, dynamic>> _recommendedPlaces = [
+    {
+      'name': 'Sample Place 1',
+      'lat': 0.0, // Replace with actual coordinates
+      'lng': 0.0,
+      'description': 'A great place to work',
+    },
+    // Add more places here
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLocationPermission();
+  }
 
   void _toggleSidebar() {
     setState(() {
       _isSidebarOpen = !_isSidebarOpen;
     });
+  }
+
+  Future<void> _checkLocationPermission() async {
+    final status = await Permission.location.request();
+    setState(() {
+      _hasLocationPermission = status.isGranted;
+    });
+    if (status.isGranted) {
+      _getCurrentLocation();
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _isLoading = false;
+      });
+
+      _updateMapMarkers();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error getting location. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  void _updateMapMarkers() {
+    if (_currentPosition == null) return;
+
+    Set<Marker> markers = {};
+
+    // Add current location marker
+    markers.add(
+      Marker(
+        markerId: const MarkerId('current_location'),
+        position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        infoWindow: const InfoWindow(title: 'Current Location'),
+      ),
+    );
+
+    // Add recommended places markers
+    for (var place in _recommendedPlaces) {
+      markers.add(
+        Marker(
+          markerId: MarkerId(place['name']),
+          position: LatLng(place['lat'], place['lng']),
+          infoWindow: InfoWindow(
+            title: place['name'],
+            snippet: place['description'],
+            onTap: () => _launchDirections(place['lat'], place['lng']),
+          ),
+        ),
+      );
+    }
+
+    setState(() {
+      _markers = markers;
+    });
+
+    // Move camera to current location
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          zoom: 14,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchDirections(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not launch Google Maps'),
+        ),
+      );
+    }
   }
 
   @override
@@ -38,12 +158,11 @@ class _NearbySpacesScreenState extends State<NearbySpacesScreen> {
           children: [
             // Main content
             SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
                       children: [
                         Text(
                           'Nearby Spaces',
@@ -62,48 +181,74 @@ class _NearbySpacesScreenState extends State<NearbySpacesScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn().slideY(begin: -0.2),
-                    const SizedBox(height: 24),
-                    Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'This is the Nearby Spaces section',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 24,
-                                    color: Colors.white,
-                                  ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        : !_hasLocationPermission
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Location permission is required',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _checkLocationPermission,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.blue.shade900,
+                                      ),
+                                      child: const Text('Grant Permission'),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Here you can find and explore coding spaces near your location.',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    color: Colors.white70,
-                                  ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Stack(
+                                  children: [
+                                    GoogleMap(
+                                      initialCameraPosition: CameraPosition(
+                                        target: _currentPosition != null
+                                            ? LatLng(
+                                                _currentPosition!.latitude,
+                                                _currentPosition!.longitude,
+                                              )
+                                            : const LatLng(0, 0),
+                                        zoom: 14,
+                                      ),
+                                      onMapCreated: (controller) {
+                                        _mapController = controller;
+                                        _updateMapMarkers();
+                                      },
+                                      markers: _markers,
+                                      myLocationEnabled: true,
+                                      myLocationButtonEnabled: true,
+                                      zoomControlsEnabled: true,
+                                      mapToolbarEnabled: true,
+                                      mapType: MapType.normal,
+                                    ),
+                                    Positioned(
+                                      bottom: 16,
+                                      right: 16,
+                                      child: FloatingActionButton(
+                                        onPressed: _getCurrentLocation,
+                                        backgroundColor: Colors.blue.shade900,
+                                        child: const Icon(Icons.my_location),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ).animate().fadeIn().scale(),
-                  ],
-                ),
+                              ),
+                  ),
+                ],
               ),
             ),
             // Shared Sidebar
@@ -116,5 +261,11 @@ class _NearbySpacesScreenState extends State<NearbySpacesScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 } 
